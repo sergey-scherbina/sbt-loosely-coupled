@@ -1,7 +1,5 @@
 name := "unit2"
 
-organization := "sample"
-
-version := "0.1"
+sampleSettings
 
 libraryDependencies += "sample" %% "unit1" % "0.1"

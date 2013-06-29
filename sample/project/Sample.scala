@@ -2,6 +2,8 @@ import sbt._
 
 object Sample extends Build {
 
+  val samplePlugin = file("plugin")
+
   val unit1 = file("unit1")
 
   val unit2 = file("unit2")
@@ -9,9 +11,12 @@ object Sample extends Build {
   val unit3 = file("unit3")
 
   val main = Project(id = "sample",
-    base = file(".")) aggregate(unit1, unit2, unit3)
+    base = file(".")) settings
+    (SamplePlugin.sampleSettings: _*) aggregate
+    (unit1, unit2, unit3)
 
   override def buildLoaders = super.buildLoaders ++
-    Seq(LooselyCoupled.linkBuilds)
+    Seq(LooselyCoupled.linkBuilds,
+      LooselyCoupled.addPlugins(samplePlugin))
 
 }

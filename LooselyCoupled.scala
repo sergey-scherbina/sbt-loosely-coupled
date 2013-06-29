@@ -4,6 +4,18 @@ import sbt.Load._
 
 object LooselyCoupled extends Plugin {
 
+  def addPlugins(plugins: File*) = addPluginsFor(_ => true, plugins: _*)
+
+  def addPluginsFor(add: BuildLoader.BuildInfo => Boolean,
+                    plugins: File*) = BuildLoader.build {
+    b => if (!add(b)) None
+    else Some(() => loadUnit(b.uri, b.base, b.state,
+      plugins.foldLeft(b.config) {
+        (config, plugin) => loadGlobal(b.state, b.base,
+          plugin.getAbsoluteFile, config)
+      }))
+  }
+
   type ProjectLinker = (BuildDependencies,
     Seq[ModuleID], ProjectRef, String) => BuildDependencies
 
