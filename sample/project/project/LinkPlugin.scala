@@ -1,10 +1,10 @@
 import sbt._
 
-object AddPlugin extends Build {
+object LinkPlugin extends Build {
 
   val looselyCoupled = file("../..")
 
-  lazy val addPlugin = Project(id = "add-plugin",
+  lazy val plugins = Project(id = "linkPlugin",
     base = file(".")) dependsOn (looselyCoupled)
 
 }

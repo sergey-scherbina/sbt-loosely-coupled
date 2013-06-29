@@ -7,9 +7,9 @@ object LooselyCoupled extends Plugin {
   type ProjectLinker = (BuildDependencies,
     Seq[ModuleID], ProjectRef, String) => BuildDependencies
 
-  def linkBuilds = buildLinker(linkProject)
+  def linkBuilds = buildsLinker(linkProject)
 
-  def buildLinker(linker: ProjectLinker) =
+  def buildsLinker(linker: ProjectLinker) =
     addSettings(toProjects = Seq(buildDependencies in Global <<=
       (buildDependencies in Global, libraryDependencies,
         thisProjectRef, organization)(linker)))
@@ -20,15 +20,17 @@ object LooselyCoupled extends Plugin {
 
     def buildˆ(b: Build) = new Build {
       override def buildLoaders = b.buildLoaders ++ addLoaders
+
       override def settings = b.settings ++ toBuilds
+
       override def projects = b.projects map (_.settings(toProjects: _*))
     }
 
-    def unitˆ(u: BuildUnit) = new BuildUnit(
-      u.uri, u.localBase, defsˆ(u.definitions), u.plugins)
-
     def defsˆ(d: LoadedDefinitions) = new LoadedDefinitions(
       d.base, d.target, d.loader, d.builds map buildˆ, d.buildNames)
+
+    def unitˆ(u: BuildUnit) = new BuildUnit(
+      u.uri, u.localBase, defsˆ(u.definitions), u.plugins)
 
     BuildLoader.transform(t => unitˆ(t.unit))
   }
@@ -37,9 +39,6 @@ object LooselyCoupled extends Plugin {
                   libraryDependencies: Seq[ModuleID],
                   thisProjectRef: ProjectRef,
                   organization: String) = {
-
-    println("link build dependencies")
-
     buildDependencies
   }
 
