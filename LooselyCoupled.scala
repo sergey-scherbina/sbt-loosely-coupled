@@ -10,7 +10,8 @@ object LooselyCoupled extends Plugin {
   ))
 
   def addSettings(toBuilds: Seq[Setting[_]] = Seq(),
-                  toProjects: Seq[Setting[_]] = Seq()) =
+                  toProjects: Seq[Setting[_]] = Seq(),
+                  addLoaders: Seq[BuildLoader.Components] = Seq()) =
     BuildLoader.transform {
       info =>
         def unitˆ(u: BuildUnit) = new BuildUnit(
@@ -20,7 +21,7 @@ object LooselyCoupled extends Plugin {
           d.base, d.target, d.loader, d.builds map buildˆ, d.buildNames)
 
         def buildˆ(b: Build) = new Build {
-          override def buildLoaders = b.buildLoaders
+          override def buildLoaders = b.buildLoaders ++ addLoaders
 
           override def settings = b.settings ++ toBuilds
 
