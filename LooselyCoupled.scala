@@ -35,12 +35,14 @@ object LooselyCoupled extends Plugin {
     BuildLoader.transform(t => unitˆ(t.unit))
   }
 
-  def linkProject(buildDependencies: BuildDependencies,
-                  libraryDependencies: Seq[ModuleID],
-                  thisProjectRef: ProjectRef,
-                  organization: String) = {
-    buildDependencies
+  def linkProject(builds: BuildDependencies, libraries: Seq[ModuleID],
+                  project: ProjectRef, organization: String) = {
+    val libs = libraries filter (_.organization == organization)
+    val deps = builds.aggregate.keys.collect {
+      case p if libs.exists(_.name == p.project) =>
+        ResolvedClasspathDependency(p, None)
+    }
+    builds.addClasspath(project, deps.toSeq: _*)
   }
-
 
 }
