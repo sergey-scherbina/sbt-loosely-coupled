@@ -1,0 +1,1 @@
+addSbtPlugin("sergey.scherbina" %% "loosely-coupled" % "0.1")
