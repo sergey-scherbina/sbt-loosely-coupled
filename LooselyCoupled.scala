@@ -4,36 +4,39 @@ import sbt.Load._
 
 object LooselyCoupled extends Plugin {
 
-  def linkBuilds = addSettings(toProjects = Seq(
-    buildDependencies in Global <<= (buildDependencies in Global,
-      libraryDependencies, thisProjectRef)(linkBuildDependencies)
-  ))
+  type ProjectLinker = (BuildDependencies,
+    Seq[ModuleID], ProjectRef, String) => BuildDependencies
+
+  def linkBuilds = buildLinker(linkProject)
+
+  def buildLinker(linker: ProjectLinker) =
+    addSettings(toProjects = Seq(buildDependencies in Global <<=
+      (buildDependencies in Global, libraryDependencies,
+        thisProjectRef, organization)(linker)))
 
   def addSettings(toBuilds: Seq[Setting[_]] = Seq(),
                   toProjects: Seq[Setting[_]] = Seq(),
-                  addLoaders: Seq[BuildLoader.Components] = Seq()) =
-    BuildLoader.transform {
-      info =>
-        def unitˆ(u: BuildUnit) = new BuildUnit(
-          u.uri, u.localBase, defsˆ(u.definitions), u.plugins)
+                  addLoaders: Seq[BuildLoader.Components] = Seq()) = {
 
-        def defsˆ(d: LoadedDefinitions) = new LoadedDefinitions(
-          d.base, d.target, d.loader, d.builds map buildˆ, d.buildNames)
-
-        def buildˆ(b: Build) = new Build {
-          override def buildLoaders = b.buildLoaders ++ addLoaders
-
-          override def settings = b.settings ++ toBuilds
-
-          override def projects = b.projects map (_.settings(toProjects: _*))
-        }
-
-        unitˆ(info.unit)
+    def buildˆ(b: Build) = new Build {
+      override def buildLoaders = b.buildLoaders ++ addLoaders
+      override def settings = b.settings ++ toBuilds
+      override def projects = b.projects map (_.settings(toProjects: _*))
     }
 
-  def linkBuildDependencies(buildDependencies: BuildDependencies,
-                            libraryDependencies: Seq[ModuleID],
-                            thisProjectRef: ProjectRef) = {
+    def unitˆ(u: BuildUnit) = new BuildUnit(
+      u.uri, u.localBase, defsˆ(u.definitions), u.plugins)
+
+    def defsˆ(d: LoadedDefinitions) = new LoadedDefinitions(
+      d.base, d.target, d.loader, d.builds map buildˆ, d.buildNames)
+
+    BuildLoader.transform(t => unitˆ(t.unit))
+  }
+
+  def linkProject(buildDependencies: BuildDependencies,
+                  libraryDependencies: Seq[ModuleID],
+                  thisProjectRef: ProjectRef,
+                  organization: String) = {
 
     println("link build dependencies")
 
