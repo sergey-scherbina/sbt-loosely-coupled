@@ -4,31 +4,31 @@ import sbt.Load._
 
 object LooselyCoupled extends Plugin {
 
-  def linkBuilds = BuildLoader.transform(addSettings(
+  def linkBuilds = addSettings(toProjects = Seq(
     buildDependencies in Global <<= (buildDependencies in Global,
       libraryDependencies, thisProjectRef)(linkBuildDependencies)
   ))
 
-  def addSettings(add: Setting[_]*)(info: BuildLoader.TransformInfo) = {
+  def addSettings(toBuilds: Seq[Setting[_]] = Seq(),
+                  toProjects: Seq[Setting[_]] = Seq()) =
+    BuildLoader.transform {
+      info =>
+        def unitˆ(u: BuildUnit) = new BuildUnit(
+          u.uri, u.localBase, defsˆ(u.definitions), u.plugins)
 
-    def toBuild(b: Build) = new Build {
-      override def buildLoaders = b.buildLoaders
+        def defsˆ(d: LoadedDefinitions) = new LoadedDefinitions(
+          d.base, d.target, d.loader, d.builds map buildˆ, d.buildNames)
 
-      override def settings = b.settings
+        def buildˆ(b: Build) = new Build {
+          override def buildLoaders = b.buildLoaders
 
-      override def projects = b.projects map (_.settings(add: _*))
+          override def settings = b.settings ++ toBuilds
+
+          override def projects = b.projects map (_.settings(toProjects: _*))
+        }
+
+        unitˆ(info.unit)
     }
-
-    def toDefs(d: LoadedDefinitions) = new LoadedDefinitions(
-      d.base, d.target, d.loader, d.builds map toBuild, d.buildNames
-    )
-
-    def toUnit(u: BuildUnit) = new BuildUnit(
-      u.uri, u.localBase, toDefs(u.definitions), u.plugins
-    )
-
-    toUnit(info.unit)
-  }
 
   def linkBuildDependencies(buildDependencies: BuildDependencies,
                             libraryDependencies: Seq[ModuleID],
