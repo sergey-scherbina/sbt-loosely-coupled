@@ -22,29 +22,29 @@ object LooselyCoupled extends Plugin {
   def linkBuilds = buildsLinker(linkProject)
 
   def buildsLinker(linker: ProjectLinker) =
-    addSettings(toProjects = Seq(buildDependencies in Global <<=
+    addSettings(inProjects = Seq(buildDependencies in Global <<=
       (buildDependencies in Global, libraryDependencies,
         thisProjectRef, organization)(linker)))
 
-  def addSettings(toBuilds: Seq[Setting[_]] = Seq(),
-                  toProjects: Seq[Setting[_]] = Seq(),
+  def addSettings(inBuilds: Seq[Setting[_]] = Seq(),
+                  inProjects: Seq[Setting[_]] = Seq(),
                   addLoaders: Seq[BuildLoader.Components] = Seq()) = {
 
-    def buildˆ(b: Build) = new Build {
+    def buildFrom(b: Build) = new Build {
       override def buildLoaders = b.buildLoaders ++ addLoaders
 
-      override def settings = b.settings ++ toBuilds
+      override def settings = b.settings ++ inBuilds
 
-      override def projects = b.projects map (_.settings(toProjects: _*))
+      override def projects = b.projects map (_.settings(inProjects: _*))
     }
 
-    def defsˆ(d: LoadedDefinitions) = new LoadedDefinitions(
-      d.base, d.target, d.loader, d.builds map buildˆ, d.buildNames)
+    def defsFrom(d: LoadedDefinitions) = new LoadedDefinitions(
+      d.base, d.target, d.loader, d.builds map buildFrom, d.buildNames)
 
-    def unitˆ(u: BuildUnit) = new BuildUnit(
-      u.uri, u.localBase, defsˆ(u.definitions), u.plugins)
+    def unitFrom(u: BuildUnit) = new BuildUnit(
+      u.uri, u.localBase, defsFrom(u.definitions), u.plugins)
 
-    BuildLoader.transform(t => unitˆ(t.unit))
+    BuildLoader.transform(t => unitFrom(t.unit))
   }
 
   def linkProject(builds: BuildDependencies, libraries: Seq[ModuleID],
