@@ -3,13 +3,13 @@ import sbt.Keys._
 
 object Sample extends Build {
 
-  val unit1 = file("unit1")
+  val unit1 = file("../unit1")
 
-  val unit2 = file("unit2")
+  val unit2 = file("../unit2")
 
-  val unit3 = file("unit3")
+  val unit3 = file("../unit3")
 
-  val samplePlugin = file("plugin")
+  val samplePlugin = file("../plugin")
 
   val sample = Project(id = "sample",
     base = file(".")) settings
