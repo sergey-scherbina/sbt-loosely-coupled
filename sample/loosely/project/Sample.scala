@@ -12,9 +12,7 @@ object Sample extends Build {
   val samplePlugin = file("../plugin")
 
   val sample = Project(id = "sample",
-    base = file(".")) settings
-    (publish := {}, publishLocal := {}) settings
-    (SamplePlugin.sampleSettings: _*) aggregate
+    base = file(".")) aggregate
     (unit1, unit2, unit3)
 
 }

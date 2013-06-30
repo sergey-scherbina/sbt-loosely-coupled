@@ -1,3 +1,7 @@
 name := "sample"
 
-organization := "sample"
+sampleSettings
+
+publish := {}
+
+publishLocal := {}
