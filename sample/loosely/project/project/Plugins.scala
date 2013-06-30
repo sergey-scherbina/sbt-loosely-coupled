@@ -1,10 +1,10 @@
 import sbt._
 
-object LinkPlugins extends Build {
+object Plugins extends Build {
 
   val samplePlugin = file("../../plugin")
 
-  lazy val plugins = Project(id = "linkPlugins",
+  lazy val plugins = Project(id = "plugins",
     base = file(".")) dependsOn (samplePlugin)
 
 }

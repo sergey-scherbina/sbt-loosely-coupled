@@ -1,0 +1,1 @@
+addSbtPlugin("sample" %% "sample-plugin" % "0.1")

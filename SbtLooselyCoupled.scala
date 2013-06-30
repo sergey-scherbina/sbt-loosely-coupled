@@ -39,18 +39,27 @@ object SbtLooselyCoupled extends Plugin {
     }
   } getOrElse state
 
+  def newBuild(ss: Seq[Setting[_]], ps: Seq[Project],
+               ls: Seq[BuildLoader.Components]): Build =
+    new Build {
+      override def buildLoaders = ls
+
+      override def settings = ss
+
+      override def projects = ps
+    }
+
+  def newBuild(b: Build)(
+    settings: Seq[Setting[_]] = b.settings, projects: Seq[Project] = b.projects,
+    buildLoaders: Seq[BuildLoader.Components] = b.buildLoaders): Build =
+    newBuild(settings, projects, buildLoaders)
 
   def addSettings(inBuilds: Seq[Setting[_]] = Seq(),
                   inProjects: Seq[Setting[_]] = Seq(),
                   addLoaders: Seq[BuildLoader.Components] = Seq()) = {
 
-    def buildFrom(b: Build) = new Build {
-      override def buildLoaders = b.buildLoaders ++ addLoaders
-
-      override def settings = b.settings ++ inBuilds
-
-      override def projects = b.projects map (_.settings(inProjects: _*))
-    }
+    def buildFrom(b: Build) = newBuild(b.settings ++ inBuilds,
+      b.projects map (_.settings(inProjects: _*)), b.buildLoaders ++ addLoaders)
 
     def defsFrom(d: LoadedDefinitions) = new LoadedDefinitions(
       d.base, d.target, d.loader, d.builds map buildFrom, d.buildNames)
@@ -74,23 +83,19 @@ object SbtLooselyCoupled extends Plugin {
   def linkBuildStructure(structure: BuildStructure,
                          dependencies: BuildDependencies) = {
 
+    def classpath(uri: URI, id: String) = dependencies.
+      classpath.getOrElse(ProjectRef(uri, id), Seq())
+
+    def toResolved(cp: ClasspathDep[ProjectRef]) =
+      ResolvedClasspathDependency(cp.project, cp.configuration)
+
     def unitFrom(u: BuildUnit) = {
 
-      def depends(p: Project) = {
-        dependencies.classpath.get(ProjectRef(u.uri, p.id)).map {
-          _.foldLeft(p)((p, d) => p.dependsOn(d.project))
-        }.getOrElse(p)
-      }
+      def depends(p: Project) = classpath(u.uri, p.id).
+        foldLeft(p)((p, d) => p.dependsOn(d.project))
 
-      def buildFrom(b: Build) = new Build {
-
-        override def buildLoaders = b.buildLoaders
-
-        override def settings = b.settings
-
-        override def projects = b.projects map depends
-
-      }
+      def buildFrom(b: Build) = newBuild(b)(
+        projects = b.projects map depends)
 
       def defsFrom(d: LoadedDefinitions) = new LoadedDefinitions(
         d.base, d.target, d.loader, d.builds map buildFrom, d.buildNames)
@@ -98,21 +103,20 @@ object SbtLooselyCoupled extends Plugin {
       new BuildUnit(u.uri, u.localBase, defsFrom(u.definitions), u.plugins)
     }
 
-    def definedFrom(buildUri: URI)(d: (String, ResolvedProject)) = {
-      val (u, p) = d
-      def rdeps(ds: Seq[ClasspathDep[ProjectRef]]) = ds.map {
-        cp => ResolvedClasspathDependency(cp.project, cp.configuration)
-      }
-      def depends = dependencies.classpath.getOrElse(
-        ProjectRef(buildUri, p.id), Seq())
-      (u, Project.resolved(p.id, p.base, p.aggregate,
-        rdeps(p.dependencies) ++ rdeps(depends),
-        p.delegates, p.settings, p.configurations))
+    def definedFrom(uri: URI)(defined: (String, ResolvedProject)) = {
+      val (u, p) = defined
+      val resolved = Project.resolved(p.id, p.base, p.aggregate,
+        (p.dependencies map toResolved) ++ (classpath(uri, p.id) map toResolved),
+        p.delegates, p.settings, p.configurations)
+      (u, resolved)
     }
 
-    def mapUnit(u: (URI, LoadedBuildUnit)) = (u._1, new LoadedBuildUnit(
-      unitFrom(u._2.unit), u._2.defined map definedFrom(u._1),
-      u._2.rootProjects, u._2.buildSettings))
+    def mapUnit(unit: (URI, LoadedBuildUnit)) = {
+      val (uri, u) = unit
+      val loaded = new LoadedBuildUnit(unitFrom(u.unit),
+        u.defined map definedFrom(uri), u.rootProjects, u.buildSettings)
+      (uri, loaded)
+    }
 
     def structureFrom(s: BuildStructure) = new BuildStructure(
       s.units map mapUnit, s.root, s.settings, s.data,
