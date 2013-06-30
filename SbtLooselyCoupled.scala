@@ -6,7 +6,7 @@ import scala.Some
 import scala.Some
 import scala.Some
 
-object LooselyCoupled extends Plugin {
+object SbtLooselyCoupled extends Plugin {
 
   def addPlugins(plugins: File*) = addPluginsFor(_ => true, plugins: _*)
 

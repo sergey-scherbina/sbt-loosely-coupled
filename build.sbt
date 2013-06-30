@@ -1,4 +1,4 @@
-name := "loosely-coupled"
+name := "sbt-loosely-coupled"
 
 organization := "sergey.scherbina"
 

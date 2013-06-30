@@ -17,8 +17,9 @@ object Sample extends Build {
     (SamplePlugin.sampleSettings: _*) aggregate
     (unit1, unit2, unit3)
 
-  override def buildLoaders = super.buildLoaders ++
-    Seq(LooselyCoupled.linkBuilds,
-      LooselyCoupled.addPlugins(samplePlugin))
+  override def buildLoaders = super.buildLoaders ++ Seq(
+    SbtLooselyCoupled.linkBuilds,
+    SbtLooselyCoupled.addPlugins(samplePlugin)
+  )
 
 }
