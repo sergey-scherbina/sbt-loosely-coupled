@@ -1,10 +1,6 @@
 import sbt._
 import sbt.Keys._
 import sbt.Load._
-import sbt.ResolvedClasspathDependency
-import scala.Some
-import scala.Some
-import scala.Some
 
 object SbtLooselyCoupled extends Plugin {
 
@@ -13,11 +9,25 @@ object SbtLooselyCoupled extends Plugin {
   def addPluginsFor(add: BuildLoader.BuildInfo => Boolean,
                     plugins: File*) = BuildLoader.build {
     b => if (!add(b)) None
-    else Some(() => loadUnit(b.uri, b.base, b.state,
-      plugins.foldLeft(b.config) {
-        (config, plugin) => loadGlobal(b.state, b.base,
-          plugin.getAbsoluteFile, config)
-      }))
+    else {
+
+      def addResolver(config: LoadBuildConfiguration) =
+        config.globalPlugin.map {
+          p => config.copy(globalPlugin = Some(p.copy(
+            inject = p.inject ++ Seq(internalResolver))))
+        }.getOrElse(config)
+
+      Some(() => loadUnit(b.uri, b.base, b.state,
+        plugins.foldLeft(b.config) {
+          (config, plugin) => addResolver(loadGlobal(b.state,
+            b.base, plugin.getAbsoluteFile, config))
+        }))
+
+    }
+  }
+
+  def internalResolver = projectResolver <<= projectDescriptors map {
+    m => new RawRepository(new ProjectResolver("loosely-coupled-resolver", m))
   }
 
   type ProjectLinker = (BuildDependencies,
@@ -25,12 +35,11 @@ object SbtLooselyCoupled extends Plugin {
 
   def linkBuilds = buildsLinker(linkProject)
 
-  def buildsLinker(linker: ProjectLinker) = addSettings(
-    inProjects = Seq(buildDependencies in Global <<=
-      (buildDependencies in Global, libraryDependencies,
-        thisProjectRef, organization)(linker)),
-    inBuilds = Seq(onLoad in Global := onLoadBuild)
-  )
+  def buildsLinker(linker: ProjectLinker) =
+    addSettings(inProjects = Seq(internalResolver,
+      buildDependencies in Global <<= (buildDependencies in Global,
+        libraryDependencies, thisProjectRef, organization)(linker)),
+      inBuilds = Seq(onLoad in Global := onLoadBuild))
 
   def onLoadBuild(state: State) = state get stateBuildStructure flatMap {
     structure => (buildDependencies in Global) get structure.data map {
