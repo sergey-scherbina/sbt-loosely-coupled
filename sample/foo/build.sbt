@@ -1,3 +1,3 @@
-name := "unit1"
+name := "foo"
 
 sampleSettings
