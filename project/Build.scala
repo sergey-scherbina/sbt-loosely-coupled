@@ -5,7 +5,7 @@ object Build extends sbt.Build {
 
   object V {
     val name = "sbt-loosely-coupled"
-    val org = "sergey-scherbina"
+    val org = "sergey.scherbina"
     val ver = "0.1"
   }
 
