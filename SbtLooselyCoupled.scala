@@ -26,9 +26,11 @@ object SbtLooselyCoupled extends Plugin {
     }
   }
 
-  def internalResolver = projectResolver <<= projectDescriptors map {
-    m => new RawRepository(new ProjectResolver("loosely-coupled-resolver", m))
-  }
+  def internalResolver =
+    projectResolver <<= (projectDescriptors, organization, name) map {
+      (m, o, n) => new RawRepository(new ProjectResolver(
+        o + "-" + n + "-loosely-coupled", m))
+    }
 
   type ProjectLinker = (BuildDependencies,
     Seq[ModuleID], ProjectRef, String) => BuildDependencies
