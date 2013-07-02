@@ -41,7 +41,8 @@ object SbtLooselyCoupled extends Plugin {
     addSettings(inProjects = Seq(internalResolver,
       buildDependencies in Global <<= (buildDependencies in Global,
         libraryDependencies, thisProjectRef, organization)(linker)),
-      inBuilds = Seq(onLoad in Global := onLoadBuild))
+      inBuilds = Seq(onLoad in Global <<=
+        (onLoad in Global)(_ compose (onLoadBuild))))
 
   def onLoadBuild(state: State) = state get stateBuildStructure flatMap {
     structure => (buildDependencies in Global) get structure.data map {
