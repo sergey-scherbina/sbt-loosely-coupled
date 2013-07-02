@@ -1,5 +1,3 @@
-package sample.loosely.project
-
 import sbt._
 import sbt.Keys._
 
